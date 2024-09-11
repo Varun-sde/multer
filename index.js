@@ -20,8 +20,8 @@ const storage = multer.diskStorage({
         cb(null, storageDirectory);  // Use the 'storage' directory
     },
     filename: function (req, file, cb) {
-        const ext = `.mp4`;  // Use a valid extension
-        cb(null, `file-${Date.now()}${ext}`);
+        const ext = file.originalname.split(`.`).pop();  // Use a valid extension
+        cb(null, `file-${Date.now()}.${ext}`);
     }
 });
 
@@ -68,6 +68,13 @@ const upload = multer({ storage: storage }).single('file');
 
 app.get('/', (req, res) => {
     res.json({ Message: 'Welcome' });
+});
+
+app.post('/upload', upload, (req, res) => {
+    if(req.file){
+        res.send(`File uploadded`)
+        console.log(req.file)
+    }
 });
 
 app.listen(3000, () => {
