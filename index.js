@@ -7,27 +7,28 @@ import checkDiskSpace from "check-disk-space";
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-let Total_Space, Used_Space, Remaining_Space;
-
+// Ensure the 'storage' folder exists
 const storageDirectory = './storage';
 if (!fs.existsSync(storageDirectory)) {
     fs.mkdirSync(storageDirectory);
+    console.log(`Created directory: ${storageDirectory}`);
 }
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, storageDirectory);
+        cb(null, storageDirectory);  // Use the 'storage' directory
     },
     filename: function (req, file, cb) {
-        const ext = `.mp4`;
+        const ext = `.mp4`;  // Use a valid extension
         cb(null, `file-${Date.now()}${ext}`);
     }
 });
 
+// Helper function to get folder size
 function getFolderSize(directory) {
     let totalSize = 0;
+
     const files = fs.readdirSync(directory);
     files.forEach(file => {
         const filePath = path.join(directory, file);
@@ -38,9 +39,11 @@ function getFolderSize(directory) {
             totalSize += stats.size;
         }
     });
+
     return totalSize;
 }
 
+// Get space info (total, used, and remaining)
 async function getSpaceInfo(directory) {
     const diskSpace = await checkDiskSpace(path.resolve(directory));
     const folderSize = getFolderSize(directory);
@@ -53,44 +56,20 @@ async function getSpaceInfo(directory) {
     };
 }
 
-function size(bytes) {
-    if (bytes <= 1024) {
-        return `${bytes} Bytes`;
-    } else if (bytes > 1024 && bytes < (1024 * 1024)) {
-        return `${(bytes / 1024).toFixed(2)} KB`;
-    } else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024)) {
-        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    } else {
-        return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-    }
-}
+// Check space for './storage' folder
+getSpaceInfo(storageDirectory).then(info => {
+    console.log(`Total Space: ${info.totalSpace} bytes`);
+    console.log(`Used Space: ${info.usedSpace} bytes`);
+    console.log(`Remaining Space: ${info.remainingSpace} bytes`);
+}).catch(console.error);
 
-async function updateSpaceInfo() {
-    try {
-        const info = await getSpaceInfo(storageDirectory);
-        Total_Space = size(info.totalSpace);
-        Used_Space = size(info.usedSpace);
-        Remaining_Space = size(info.remainingSpace);
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-updateSpaceInfo();
-
-setInterval(updateSpaceInfo, 60000); // Update every 60 seconds
-
+// Multer setup
 const upload = multer({ storage: storage }).single('file');
 
-app.post('/upload', upload, (req, res) => {
-    updateSpaceInfo(); // Update space info after upload
-    res.json({ message: 'File uploaded successfully!' });
-});
-
 app.get('/', (req, res) => {
-    res.json({ Total_Space, Used_Space, Remaining_Space });
+    res.json({ Message: 'Welcome' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(3000, () => {
+    console.log('Server runs on port 3000');
 });
